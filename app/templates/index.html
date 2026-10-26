@@ -623,17 +623,17 @@
                 <input type="text" id="tx-title-input" name="title" class="form-input" required placeholder="e.g. Grocery shopping, Salary, Uber ride...">
             </div>
 
-            <!-- All Categories Visual Selector & Smart Hint -->
+            <!-- Visual Category Chips (No Dropdown) -->
             <div class="form-group">
                 <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
                     <span>Category *</span>
                     <span id="tx-auto-detect-hint" style="font-size: 0.775rem; color: var(--primary); font-weight: 600; display: none;"></span>
                 </label>
-                <select id="tx-category-input" name="category_id" class="form-input" style="margin-bottom: 0.5rem;">
-                    <option value="">Select Category...</option>
-                </select>
+                <!-- Hidden input stores the selected category ID -->
+                <input type="hidden" id="tx-category-input" name="category_id">
+                
                 <div id="tx-category-chips" class="tx-category-chips-container">
-                    <!-- Populated dynamically with all categories -->
+                    <!-- Loaded dynamically as clickable chips -->
                 </div>
             </div>
 

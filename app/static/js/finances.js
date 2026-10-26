@@ -2,7 +2,6 @@
     categories: [],
     searchDebounce: null,
 
-    // Smart Keyword Detection Dictionary
     CATEGORY_KEYWORDS: {
         'Food & Dining': ['food', 'dining', 'lunch', 'dinner', 'breakfast', 'meal', 'pizza', 'burger', 'restaurant', 'cafe', 'coffee', 'grocery', 'groceries', 'supermarket', 'snack', 'snacks', 'tea', 'swiggy', 'zomato', 'eat', 'bakery', 'milk', 'vegetables', 'fruit'],
         'Transportation': ['transport', 'travel', 'cab', 'taxi', 'uber', 'ola', 'auto', 'bus', 'metro', 'train', 'flight', 'petrol', 'fuel', 'gas', 'diesel', 'parking', 'toll', 'vehicle', 'bike', 'car'],
@@ -26,7 +25,6 @@
     },
 
     bindEvents() {
-        // Expenses filter triggers
         const expSearch = document.getElementById('expense-search-input');
         if (expSearch) {
             expSearch.addEventListener('input', () => {
@@ -38,7 +36,6 @@
         document.getElementById('expense-start-date')?.addEventListener('change', () => this.loadTransactions('expense'));
         document.getElementById('expense-end-date')?.addEventListener('change', () => this.loadTransactions('expense'));
 
-        // Income filter triggers
         const incSearch = document.getElementById('income-search-input');
         if (incSearch) {
             incSearch.addEventListener('input', () => {
@@ -54,12 +51,6 @@
         const titleInput = document.getElementById('tx-title-input');
         if (titleInput) {
             titleInput.addEventListener('input', (e) => this.autoDetectCategory(e.target.value));
-        }
-
-        // Category dropdown change synchronizes chip selection
-        const catSelect = document.getElementById('tx-category-input');
-        if (catSelect) {
-            catSelect.addEventListener('change', (e) => this.highlightCategoryChip(e.target.value));
         }
 
         // Transaction Form Submission
@@ -89,11 +80,11 @@
     populateCategorySelects() {
         const expFilter = document.getElementById('expense-category-filter');
         const incFilter = document.getElementById('income-category-filter');
-        const modalSelect = document.getElementById('tx-category-input');
         const chipsContainer = document.getElementById('tx-category-chips');
 
         const activeType = document.querySelector('input[name="type"]:checked')?.value || 'expense';
 
+        // Table filters
         if (expFilter) {
             const expCats = this.categories.filter(c => c.type === 'expense' || c.type === 'both');
             expFilter.innerHTML = '<option value="">All Categories</option>' + 
@@ -106,14 +97,9 @@
                 incCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
+        // Modal visual category chips (no dropdown)
         const filtered = this.categories.filter(c => c.type === activeType || c.type === 'both');
 
-        if (modalSelect) {
-            modalSelect.innerHTML = '<option value="">Select Category...</option>' + 
-                filtered.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        }
-
-        // Populate visual category chips
         if (chipsContainer) {
             chipsContainer.innerHTML = filtered.map(c => `
                 <div class="tx-category-chip" data-id="${c.id}" onclick="Finances.selectCategory(${c.id})">
@@ -125,11 +111,10 @@
     },
 
     selectCategory(catId) {
-        const select = document.getElementById('tx-category-input');
-        if (select) select.value = catId;
+        const hiddenInput = document.getElementById('tx-category-input');
+        if (hiddenInput) hiddenInput.value = catId;
         this.highlightCategoryChip(catId);
 
-        // Hide auto-detect message when manually clicked
         const hint = document.getElementById('tx-auto-detect-hint');
         if (hint) hint.style.display = 'none';
     },
@@ -160,8 +145,8 @@
             if (matched) {
                 const matchedCategory = filtered.find(c => c.name.toLowerCase() === catName.toLowerCase());
                 if (matchedCategory) {
-                    const select = document.getElementById('tx-category-input');
-                    if (select) select.value = matchedCategory.id;
+                    const hiddenInput = document.getElementById('tx-category-input');
+                    if (hiddenInput) hiddenInput.value = matchedCategory.id;
                     this.highlightCategoryChip(matchedCategory.id);
 
                     const hint = document.getElementById('tx-auto-detect-hint');
@@ -176,7 +161,10 @@
     },
 
     onTypeChange(type) {
+        const hiddenInput = document.getElementById('tx-category-input');
+        if (hiddenInput) hiddenInput.value = '';
         this.populateCategorySelects();
+
         const titleInput = document.getElementById('tx-title-input');
         if (titleInput && titleInput.value) {
             this.autoDetectCategory(titleInput.value);
@@ -265,6 +253,7 @@
             document.getElementById('tx-type-expense').checked = true;
         }
 
+        document.getElementById('tx-category-input').value = '';
         document.getElementById('tx-date-input').value = new Date().toISOString().split('T')[0];
         document.getElementById('tx-currency-label').textContent = window.CURRENCY_SYMBOL || '₹';
         
@@ -323,12 +312,17 @@
         const merchant = document.getElementById('tx-merchant-input').value.trim();
         const notes = document.getElementById('tx-notes-input').value.trim();
 
+        if (!category_id) {
+            API.showToast('Please select a category by clicking one of the category chips.', 'warning');
+            return;
+        }
+
         const payload = {
             type,
             title,
             amount,
             transaction_date,
-            category_id: category_id || null,
+            category_id: parseInt(category_id),
             payment_method,
             merchant,
             notes
