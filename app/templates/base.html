@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SmartLife - Smart Task, Calendar & Expense Management System">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}SmartLife — Productivity & Personal Finance{% endblock %}</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- CSS Modules -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    
+    <!-- Engines: Chart.js & FullCalendar 6 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="app-sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="brand-icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
+                    <span class="brand-name">SmartLife</span>
+                </div>
+                <button class="sidebar-close-btn" id="sidebar-close-btn" title="Close Sidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <span class="nav-label">Core Modules</span>
+                <a href="#dashboard" class="nav-link active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                <a href="#tasks" class="nav-link"><i class="fa-solid fa-list-check"></i> My Tasks</a>
+                <a href="#calendar" class="nav-link"><i class="fa-regular fa-calendar"></i> Calendar</a>
+                
+                <span class="nav-label">Finances</span>
+                <a href="#expenses" class="nav-link"><i class="fa-solid fa-arrow-trend-down"></i> Expenses</a>
+                <a href="#income" class="nav-link"><i class="fa-solid fa-arrow-trend-up"></i> Income</a>
+                <a href="#budgets" class="nav-link"><i class="fa-solid fa-wallet"></i> Budgets</a>
+                <a href="#reports" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> Reports</a>
+
+                <div class="admin-nav" id="admin-nav-item" style="display: none;">
+                    <span class="nav-label">Administration</span>
+                    <a href="#admin" class="nav-link"><i class="fa-solid fa-shield-halved"></i> Admin Console</a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="btn btn-outline" style="width: 100%;">
+                    <i class="fa-solid fa-moon"></i> Toggle Theme
+                </button>
+            </div>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <div class="app-main">
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="header-greeting">
+                        <h2>SmartLife Workspace</h2>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div class="user-guest">
+                        <button class="btn btn-secondary open-login-btn">
+                            <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                        </button>
+                    </div>
+
+                    <div class="user-authenticated" style="display: none; align-items: center; gap: 0.75rem;">
+                        <button class="notification-btn" id="notif-bell-btn" title="Notifications">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="notif-badge" id="notif-badge-count" style="display: none;">0</span>
+                        </button>
+
+                        <div class="notif-dropdown" id="notif-dropdown">
+                            <div class="notif-header">
+                                <span style="font-weight: 600; font-size: 0.9rem;">Notification Center</span>
+                                <button class="btn-icon-subtle" id="notif-mark-all-btn" title="Mark all read" style="font-size: 0.8rem;">
+                                    Mark all read
+                                </button>
+                            </div>
+                            <div class="notif-list" id="notif-items-list">
+                                <p style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">Checking alerts...</p>
+                            </div>
+                        </div>
+
+                        <span id="user-display-name" style="font-weight: 600;">User</span>
+                        <button id="logout-btn" class="btn btn-outline" style="padding: 0.5rem 0.8rem;" title="Sign Out">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-body">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="auth-modal-close"><i class="fa-solid fa-xmark"></i></button>
+            <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem;">
+                <button class="auth-tab active btn" data-tab="login" style="flex: 1; border-radius: 0;">Sign In</button>
+                <button class="auth-tab btn" data-tab="register" style="flex: 1; border-radius: 0;">Register</button>
+            </div>
+
+            <div id="login-panel" class="auth-panel">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" name="email" class="form-input" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-input" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn btn-secondary" style="width: 100%;">Sign In</button>
+                </form>
+            </div>
+
+            <div id="register-panel" class="auth-panel" style="display: none;">
+                <form id="register-form">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="name" class="form-input" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" name="email" class="form-input" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Currency</label>
+                        <select name="currency" class="form-input">
+                            <option value="INR" selected>INR (₹)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password (Min 8 chars)</label>
+                        <input type="password" name="password" class="form-input" required minlength="8" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn btn-secondary" style="width: 100%;">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Application Script Engine -->
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/finances.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/budgets.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
