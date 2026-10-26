@@ -15,12 +15,18 @@
         }
     },
 
+    async ensureCategoriesLoaded() {
+        if (!this.categories || this.categories.length === 0) {
+            const catRes = await API.get('/api/transactions/categories?type=expense');
+            if (catRes.ok && catRes.data) {
+                this.categories = catRes.data;
+            }
+        }
+    },
+
     async loadBudgets() {
         if (!Auth.currentUser) return;
-        
-        // Fetch categories for category allocations
-        const catRes = await API.get('/api/transactions/categories?type=expense');
-        if (catRes.ok) this.categories = catRes.data;
+        await this.ensureCategoriesLoaded();
 
         const res = await API.get('/api/budgets');
         const container = document.getElementById('budgets-container');
@@ -29,7 +35,7 @@
 
         const sym = window.CURRENCY_SYMBOL || '₹';
 
-        if (!res.ok || res.data.length === 0) {
+        if (!res.ok || !res.data || res.data.length === 0) {
             container.innerHTML = `
                 <div class="empty-state-box">
                     <i class="fa-solid fa-wallet empty-state-icon"></i>
@@ -43,7 +49,6 @@
             return;
         }
 
-        // Render any critical threshold alerts
         if (alertsContainer) {
             const exceededBudgets = res.data.filter(b => b.is_active && b.status === 'exceeded');
             const warningBudgets = res.data.filter(b => b.is_active && b.status === 'warning');
@@ -59,7 +64,7 @@
                 alertHtml += `
                     <div class="alert-banner warning">
                         <i class="fa-solid fa-circle-exclamation"></i>
-                        <span><strong>Budget Warning:</strong> You have consumed over 75% of your allowance on "${warningBudgets.map(b => b.name).join(', ')}".</span>
+                        <span><strong>Budget Warning:</strong> You have consumed over 75% of your planned allowance on "${warningBudgets.map(b => b.name).join(', ')}".</span>
                     </div>`;
             }
             alertsContainer.innerHTML = alertHtml;
@@ -82,7 +87,6 @@
 
         const barWidth = Math.min(b.percent_used, 100);
 
-        // Render category breakdown chips if available
         let categoriesHtml = '';
         if (b.categories && b.categories.length > 0) {
             categoriesHtml = `
@@ -147,29 +151,40 @@
             </div>`;
     },
 
-    openCreateModal() {
+    async openCreateModal() {
         if (!Auth.currentUser) {
             Auth.showModal('login');
             return;
         }
+
+        await this.ensureCategoriesLoaded();
 
         document.getElementById('budget-modal-title').textContent = 'Create Budget Plan';
         document.getElementById('budget-id-field').value = '';
         document.getElementById('budget-form').reset();
         document.getElementById('budget-category-inputs').innerHTML = '';
 
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.month || today.getMonth(), 1);
-        const lastDay = new Date(today.getFullYear(), (today.month || today.getMonth()) + 1, 0);
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        document.getElementById('budget-start-input').value = firstDay.toISOString().split('T')[0];
-        document.getElementById('budget-end-input').value = lastDay.toISOString().split('T')[0];
+        const toLocalISO = (d) => {
+            const yr = d.getFullYear();
+            const mo = String(d.getMonth() + 1).padStart(2, '0');
+            const da = String(d.getDate()).padStart(2, '0');
+            return `${yr}-${mo}-${da}`;
+        };
+
+        document.getElementById('budget-start-input').value = toLocalISO(firstDay);
+        document.getElementById('budget-end-input').value = toLocalISO(lastDay);
         document.getElementById('budget-currency-label').textContent = window.CURRENCY_SYMBOL || '₹';
 
         document.getElementById('budget-modal').classList.add('active');
     },
 
     async openEditModal(budgetId) {
+        await this.ensureCategoriesLoaded();
+
         const res = await API.get(`/api/budgets/${budgetId}`);
         if (!res.ok) return;
 
@@ -228,7 +243,6 @@
         const start_date = document.getElementById('budget-start-input').value;
         const end_date = document.getElementById('budget-end-input').value;
 
-        // Collect category limits
         const catSelects = document.querySelectorAll('.budget-cat-select');
         const catAmounts = document.querySelectorAll('.budget-cat-amount');
         const category_limits = [];

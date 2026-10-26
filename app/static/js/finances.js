@@ -47,13 +47,11 @@
         document.getElementById('income-start-date')?.addEventListener('change', () => this.loadTransactions('income'));
         document.getElementById('income-end-date')?.addEventListener('change', () => this.loadTransactions('income'));
 
-        // Smart Category Detection on Title Input
         const titleInput = document.getElementById('tx-title-input');
         if (titleInput) {
             titleInput.addEventListener('input', (e) => this.autoDetectCategory(e.target.value));
         }
 
-        // Transaction Form Submission
         const txForm = document.getElementById('tx-form');
         if (txForm) {
             txForm.addEventListener('submit', async (e) => {
@@ -84,7 +82,6 @@
 
         const activeType = document.querySelector('input[name="type"]:checked')?.value || 'expense';
 
-        // Table filters
         if (expFilter) {
             const expCats = this.categories.filter(c => c.type === 'expense' || c.type === 'both');
             expFilter.innerHTML = '<option value="">All Categories</option>' + 
@@ -97,7 +94,6 @@
                 incCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
-        // Modal visual category chips (no dropdown)
         const filtered = this.categories.filter(c => c.type === activeType || c.type === 'both');
 
         if (chipsContainer) {
@@ -194,16 +190,25 @@
 
         const sym = window.CURRENCY_SYMBOL || '₹';
 
-        if (!res.ok || res.data.length === 0) {
+        if (!res.ok || !res.data || res.data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">No ${type} transactions recorded for this period.</td></tr>`;
             if (totalEl) totalEl.textContent = `${sym} 0.00`;
             if (countEl) countEl.textContent = '0 recorded items';
             return;
         }
 
-        const totalAmount = type === 'expense' ? res.summary.total_expense : res.summary.total_income;
-        if (totalEl) totalEl.textContent = `${sym} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-        if (countEl) countEl.textContent = `${res.summary.count} recorded transactions`;
+        // Safe calculation fallback if summary is ever missing
+        let totalAmount = 0;
+        if (res.summary) {
+            totalAmount = type === 'expense' ? res.summary.total_expense : res.summary.total_income;
+        } else {
+            totalAmount = res.data.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+        }
+
+        const count = (res.summary && res.summary.count !== undefined) ? res.summary.count : res.data.length;
+
+        if (totalEl) totalEl.textContent = `${sym} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (countEl) countEl.textContent = `${count} recorded transactions`;
 
         tbody.innerHTML = res.data.map(tx => {
             const isInc = tx.type === 'income';
@@ -221,7 +226,7 @@
                     </td>
                     <td><span style="font-size: 0.8rem; color: var(--text-subtle);">${tx.payment_method}</span></td>
                     <td class="${isInc ? 'amount-income' : 'amount-expense'}">
-                        ${isInc ? '+' : '-'}${sym} ${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        ${isInc ? '+' : '-'}${sym} ${(parseFloat(tx.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style="text-align: right;">
                         <button class="btn-icon-subtle" title="Edit" onclick="Finances.openEditModal(${tx.id})">
@@ -254,7 +259,11 @@
         }
 
         document.getElementById('tx-category-input').value = '';
-        document.getElementById('tx-date-input').value = new Date().toISOString().split('T')[0];
+        
+        // Use local calendar date without UTC offset shifting
+        const now = new Date();
+        const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        document.getElementById('tx-date-input').value = localDateStr;
         document.getElementById('tx-currency-label').textContent = window.CURRENCY_SYMBOL || '₹';
         
         const hint = document.getElementById('tx-auto-detect-hint');
@@ -338,7 +347,11 @@
         if (res.ok) {
             API.showToast(res.message, 'success');
             this.closeModal();
-            this.loadTransactions(type);
+
+            // Synchronize all workspaces at once
+            this.loadTransactions('expense');
+            this.loadTransactions('income');
+            if (window.Budgets) Budgets.loadBudgets();
             if (window.Dashboard) Dashboard.loadDashboard();
             if (window.CalendarApp) CalendarApp.refresh();
         }
@@ -352,6 +365,7 @@
             API.showToast('Transaction deleted.', 'info');
             this.loadTransactions('expense');
             this.loadTransactions('income');
+            if (window.Budgets) Budgets.loadBudgets();
             if (window.Dashboard) Dashboard.loadDashboard();
             if (window.CalendarApp) CalendarApp.refresh();
         }

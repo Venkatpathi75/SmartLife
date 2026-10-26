@@ -31,7 +31,13 @@
                 return { ok: false, status: response.status, error: data.error };
             }
 
-            return { ok: true, status: response.status, data: data.data, message: data.message };
+            // Preserves data, summary, message, and all top-level server response fields
+            return {
+                ok: true,
+                status: response.status,
+                ...data,
+                data: data.data !== undefined ? data.data : data
+            };
         } catch (err) {
             this.showToast('Server connection failed.', 'error');
             return { ok: false, status: 500, error: { message: err.message } };
