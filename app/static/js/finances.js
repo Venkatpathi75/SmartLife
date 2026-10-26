@@ -2,12 +2,31 @@
     categories: [],
     searchDebounce: null,
 
+    // Smart Keyword Detection Dictionary
+    CATEGORY_KEYWORDS: {
+        'Food & Dining': ['food', 'dining', 'lunch', 'dinner', 'breakfast', 'meal', 'pizza', 'burger', 'restaurant', 'cafe', 'coffee', 'grocery', 'groceries', 'supermarket', 'snack', 'snacks', 'tea', 'swiggy', 'zomato', 'eat', 'bakery', 'milk', 'vegetables', 'fruit'],
+        'Transportation': ['transport', 'travel', 'cab', 'taxi', 'uber', 'ola', 'auto', 'bus', 'metro', 'train', 'flight', 'petrol', 'fuel', 'gas', 'diesel', 'parking', 'toll', 'vehicle', 'bike', 'car'],
+        'Education': ['education', 'school', 'college', 'tuition', 'course', 'book', 'books', 'exam', 'fee', 'udemy', 'coursera', 'class', 'classes', 'study', 'semester'],
+        'Shopping': ['shopping', 'clothes', 'dress', 'shirt', 'pants', 'shoes', 'amazon', 'flipkart', 'myntra', 'mall', 'store', 'electronics', 'gadget', 'purchase', 'buy'],
+        'Entertainment': ['entertainment', 'movie', 'cinema', 'netflix', 'spotify', 'prime', 'game', 'gaming', 'concert', 'event', 'show', 'party', 'youtube', 'subscription'],
+        'Healthcare': ['health', 'healthcare', 'doctor', 'hospital', 'clinic', 'medicine', 'pharmacy', 'medical', 'dentist', 'checkup', 'test', 'tablet', 'pills'],
+        'Bills & Utilities': ['bill', 'bills', 'utility', 'utilities', 'electricity', 'water', 'wifi', 'internet', 'recharge', 'broadband', 'phone', 'power', 'mobile', 'dth'],
+        'Rent & Housing': ['rent', 'house', 'housing', 'flat', 'apartment', 'maintenance', 'room', 'pg', 'mortgage'],
+        'Travel': ['travel', 'trip', 'hotel', 'resort', 'vacation', 'tour', 'booking', 'flight ticket', 'train ticket', 'air'],
+        'Personal Care': ['personal care', 'salon', 'haircut', 'spa', 'gym', 'fitness', 'beauty', 'cosmetic', 'skincare'],
+        'Salary': ['salary', 'wages', 'stipend', 'paycheck', 'payroll', 'monthly pay'],
+        'Freelancing': ['freelance', 'freelancing', 'client', 'contract', 'gig', 'consulting', 'project', 'upwork', 'fiverr'],
+        'Business': ['business', 'sales', 'profit', 'revenue', 'invoice', 'store sale', 'shop revenue'],
+        'Investments': ['investment', 'investments', 'stock', 'stocks', 'dividend', 'crypto', 'mutual fund', 'shares', 'interest', 'trading', 'return', 'fd', 'rd'],
+        'Gifts & Grants': ['gift', 'gifts', 'grant', 'bonus', 'reward', 'cashback', 'prize', 'donation', 'scholarship']
+    },
+
     init() {
         this.bindEvents();
     },
 
     bindEvents() {
-        // Search & Filters for Expenses
+        // Expenses filter triggers
         const expSearch = document.getElementById('expense-search-input');
         if (expSearch) {
             expSearch.addEventListener('input', () => {
@@ -19,7 +38,7 @@
         document.getElementById('expense-start-date')?.addEventListener('change', () => this.loadTransactions('expense'));
         document.getElementById('expense-end-date')?.addEventListener('change', () => this.loadTransactions('expense'));
 
-        // Search & Filters for Income
+        // Income filter triggers
         const incSearch = document.getElementById('income-search-input');
         if (incSearch) {
             incSearch.addEventListener('input', () => {
@@ -31,7 +50,19 @@
         document.getElementById('income-start-date')?.addEventListener('change', () => this.loadTransactions('income'));
         document.getElementById('income-end-date')?.addEventListener('change', () => this.loadTransactions('income'));
 
-        // Transaction Modal Form Submission
+        // Smart Category Detection on Title Input
+        const titleInput = document.getElementById('tx-title-input');
+        if (titleInput) {
+            titleInput.addEventListener('input', (e) => this.autoDetectCategory(e.target.value));
+        }
+
+        // Category dropdown change synchronizes chip selection
+        const catSelect = document.getElementById('tx-category-input');
+        if (catSelect) {
+            catSelect.addEventListener('change', (e) => this.highlightCategoryChip(e.target.value));
+        }
+
+        // Transaction Form Submission
         const txForm = document.getElementById('tx-form');
         if (txForm) {
             txForm.addEventListener('submit', async (e) => {
@@ -41,13 +72,17 @@
         }
     },
 
-    async loadCategories(type = null) {
-        let url = '/api/transactions/categories';
-        if (type) url += `?type=${type}`;
-        const res = await API.get(url);
+    async loadCategories() {
+        const res = await API.get('/api/transactions/categories');
         if (res.ok) {
             this.categories = res.data;
             this.populateCategorySelects();
+        }
+    },
+
+    async ensureCategoriesLoaded() {
+        if (!this.categories || this.categories.length === 0) {
+            await this.loadCategories();
         }
     },
 
@@ -55,6 +90,7 @@
         const expFilter = document.getElementById('expense-category-filter');
         const incFilter = document.getElementById('income-category-filter');
         const modalSelect = document.getElementById('tx-category-input');
+        const chipsContainer = document.getElementById('tx-category-chips');
 
         const activeType = document.querySelector('input[name="type"]:checked')?.value || 'expense';
 
@@ -70,20 +106,86 @@
                 incCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
+        const filtered = this.categories.filter(c => c.type === activeType || c.type === 'both');
+
         if (modalSelect) {
-            const filtered = this.categories.filter(c => c.type === activeType || c.type === 'both');
             modalSelect.innerHTML = '<option value="">Select Category...</option>' + 
                 filtered.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        // Populate visual category chips
+        if (chipsContainer) {
+            chipsContainer.innerHTML = filtered.map(c => `
+                <div class="tx-category-chip" data-id="${c.id}" onclick="Finances.selectCategory(${c.id})">
+                    <i class="fa-solid ${c.icon}" style="color: ${c.color};"></i>
+                    <span>${c.name}</span>
+                </div>
+            `).join('');
+        }
+    },
+
+    selectCategory(catId) {
+        const select = document.getElementById('tx-category-input');
+        if (select) select.value = catId;
+        this.highlightCategoryChip(catId);
+
+        // Hide auto-detect message when manually clicked
+        const hint = document.getElementById('tx-auto-detect-hint');
+        if (hint) hint.style.display = 'none';
+    },
+
+    highlightCategoryChip(catId) {
+        document.querySelectorAll('.tx-category-chip').forEach(chip => {
+            if (chip.dataset.id == catId) {
+                chip.classList.add('selected');
+            } else {
+                chip.classList.remove('selected');
+            }
+        });
+    },
+
+    autoDetectCategory(titleText) {
+        if (!titleText || titleText.trim().length < 2) {
+            const hint = document.getElementById('tx-auto-detect-hint');
+            if (hint) hint.style.display = 'none';
+            return;
+        }
+
+        const text = titleText.toLowerCase();
+        const activeType = document.querySelector('input[name="type"]:checked')?.value || 'expense';
+        const filtered = this.categories.filter(c => c.type === activeType || c.type === 'both');
+
+        for (const [catName, keywords] of Object.entries(this.CATEGORY_KEYWORDS)) {
+            const matched = keywords.some(kw => text.includes(kw));
+            if (matched) {
+                const matchedCategory = filtered.find(c => c.name.toLowerCase() === catName.toLowerCase());
+                if (matchedCategory) {
+                    const select = document.getElementById('tx-category-input');
+                    if (select) select.value = matchedCategory.id;
+                    this.highlightCategoryChip(matchedCategory.id);
+
+                    const hint = document.getElementById('tx-auto-detect-hint');
+                    if (hint) {
+                        hint.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Auto-selected: ${matchedCategory.name}`;
+                        hint.style.display = 'inline';
+                    }
+                    return;
+                }
+            }
         }
     },
 
     onTypeChange(type) {
         this.populateCategorySelects();
+        const titleInput = document.getElementById('tx-title-input');
+        if (titleInput && titleInput.value) {
+            this.autoDetectCategory(titleInput.value);
+        }
     },
 
     async loadTransactions(type) {
         if (!Auth.currentUser) return;
-        await this.loadCategories();
+        await this.ensureCategoriesLoaded();
 
         const search = document.getElementById(`${type}-search-input`)?.value || '';
         const catId = document.getElementById(`${type}-category-filter`)?.value || '';
@@ -145,11 +247,13 @@
         }).join('');
     },
 
-    openModal(defaultType = 'expense') {
+    async openModal(defaultType = 'expense') {
         if (!Auth.currentUser) {
             Auth.showModal('login');
             return;
         }
+
+        await this.ensureCategoriesLoaded();
 
         document.getElementById('tx-modal-title').textContent = defaultType === 'income' ? 'Record Income' : 'Record Expense';
         document.getElementById('tx-id-field').value = '';
@@ -164,11 +268,16 @@
         document.getElementById('tx-date-input').value = new Date().toISOString().split('T')[0];
         document.getElementById('tx-currency-label').textContent = window.CURRENCY_SYMBOL || '₹';
         
+        const hint = document.getElementById('tx-auto-detect-hint');
+        if (hint) hint.style.display = 'none';
+
         this.populateCategorySelects();
         document.getElementById('tx-modal').classList.add('active');
     },
 
     async openEditModal(txId) {
+        await this.ensureCategoriesLoaded();
+
         const res = await API.get(`/api/transactions/${txId}`);
         if (!res.ok) return;
 
@@ -189,7 +298,13 @@
         }
 
         this.populateCategorySelects();
-        document.getElementById('tx-category-input').value = tx.category_id || '';
+        if (tx.category_id) {
+            this.selectCategory(tx.category_id);
+        }
+
+        const hint = document.getElementById('tx-auto-detect-hint');
+        if (hint) hint.style.display = 'none';
+
         document.getElementById('tx-modal').classList.add('active');
     },
 

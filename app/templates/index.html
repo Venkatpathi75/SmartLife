@@ -21,7 +21,6 @@
         </button>
     </div>
 
-    <!-- Metric Cards -->
     <div class="stats-grid">
         <div class="card stat-card">
             <div class="stat-icon primary"><i class="fa-solid fa-list-check"></i></div>
@@ -88,7 +87,6 @@
         </div>
     </div>
 
-    <!-- Charts Section -->
     <div class="charts-grid">
         <div class="card">
             <div class="card-header">
@@ -109,7 +107,6 @@
         </div>
     </div>
 
-    <!-- Activity Section -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
         <div class="card">
             <div class="card-header">
@@ -456,7 +453,6 @@
         </button>
     </div>
 
-    <!-- Admin Global Telemetry Cards -->
     <div class="stats-grid">
         <div class="card stat-card">
             <div class="stat-icon primary"><i class="fa-solid fa-users"></i></div>
@@ -488,7 +484,6 @@
         </div>
     </div>
 
-    <!-- User Management Section -->
     <div class="card" style="margin-bottom: 2rem;">
         <div class="card-header">
             <h3 class="card-title"><i class="fa-solid fa-user-gear"></i> User Accounts Governance</h3>
@@ -527,7 +522,6 @@
         </div>
     </div>
 
-    <!-- Security & Administrative Audit Trail -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Security Audit Log</h3>
@@ -626,7 +620,21 @@
 
             <div class="form-group">
                 <label class="form-label">Title / Description *</label>
-                <input type="text" id="tx-title-input" name="title" class="form-input" required placeholder="e.g. Grocery shopping or Client stipend">
+                <input type="text" id="tx-title-input" name="title" class="form-input" required placeholder="e.g. Grocery shopping, Salary, Uber ride...">
+            </div>
+
+            <!-- All Categories Visual Selector & Smart Hint -->
+            <div class="form-group">
+                <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Category *</span>
+                    <span id="tx-auto-detect-hint" style="font-size: 0.775rem; color: var(--primary); font-weight: 600; display: none;"></span>
+                </label>
+                <select id="tx-category-input" name="category_id" class="form-input" style="margin-bottom: 0.5rem;">
+                    <option value="">Select Category...</option>
+                </select>
+                <div id="tx-category-chips" class="tx-category-chips-container">
+                    <!-- Populated dynamically with all categories -->
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -641,25 +649,16 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label class="form-label">Category</label>
-                    <select id="tx-category-input" name="category_id" class="form-input">
-                        <option value="">Select Category...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Payment Method</label>
-                    <select id="tx-method-input" name="payment_method" class="form-input">
-                        <option value="UPI / Cash">UPI / Cash</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Debit Card">Debit Card</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Net Banking">Net Banking</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label class="form-label">Payment Method</label>
+                <select id="tx-method-input" name="payment_method" class="form-input">
+                    <option value="UPI / Cash">UPI / Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Net Banking">Net Banking</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>
 
             <div class="form-group">

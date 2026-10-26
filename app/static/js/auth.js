@@ -9,6 +9,9 @@
             if (window.Dashboard) {
                 window.Dashboard.loadDashboard();
             }
+            if (window.Finances) {
+                window.Finances.loadCategories();
+            }
         } else {
             this.updateUIForGuest();
         }
@@ -17,14 +20,12 @@
     },
 
     bindEvents() {
-        // Modal toggles
         const openLoginBtns = document.querySelectorAll('.open-login-btn');
         openLoginBtns.forEach(btn => btn.addEventListener('click', () => this.showModal('login')));
 
         const modalCloseBtn = document.getElementById('auth-modal-close');
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => this.hideModal());
 
-        // Tab switcher
         const authTabs = document.querySelectorAll('.auth-tab');
         authTabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -33,7 +34,6 @@
             });
         });
 
-        // Form submissions
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {
@@ -50,7 +50,6 @@
             });
         }
 
-        // Logout action
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async (e) => {
@@ -96,6 +95,9 @@
             if (window.Dashboard) {
                 window.Dashboard.loadDashboard();
             }
+            if (window.Finances) {
+                window.Finances.loadCategories();
+            }
         }
     },
 
@@ -129,7 +131,6 @@
         const currencySymbol = user.currency === 'INR' ? '₹' : (user.currency === 'USD' ? '$' : user.currency);
         window.CURRENCY_SYMBOL = currencySymbol;
 
-        // Show Admin Nav Link if user role is admin
         const adminNav = document.getElementById('admin-nav-item');
         if (adminNav) {
             adminNav.style.display = user.role === 'admin' ? 'block' : 'none';
